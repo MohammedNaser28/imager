@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
-import { readDir, readFile } from '@tauri-apps/plugin-fs';
+import { readDir } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 
 export default function FolderSelector() {
     const [selectedPath, setSelectedPath] = useState('');
     const [imageFiles, setImageFiles] = useState([]);
-    const [loadedImages, setLoadedImages] = useState({});
+    const [imageCache, setImageCache] = useState({});
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [viewMode, setViewMode] = useState('grid');
+    const [viewMode, setViewMode] = useState('single');
     const [currentIndex, setCurrentIndex] = useState(0);
 
     const selectFolder = async () => {
@@ -26,7 +27,7 @@ export default function FolderSelector() {
                 setSelectedPath(selected);
                 await loadImageList(selected);
                 setCurrentIndex(0);
-                setLoadedImages({});
+                setImageCache({});
             }
         } catch (err) {
             const errorMsg = err?.message || err?.toString() || 'Failed to open folder dialog';
@@ -63,18 +64,18 @@ export default function FolderSelector() {
         }
     };
 
-    const loadImage = async (index) => {
-        if (loadedImages[index]) return loadedImages[index];
+    const loadImageData = async (path) => {
+        if (imageCache[path]) {
+            return imageCache[path];
+        }
 
         try {
-            const file = imageFiles[index];
-            const contents = await readFile(file.path);
-
+            const bytes = await invoke('read_image', { path });
             const base64 = btoa(
-                contents.reduce((data, byte) => data + String.fromCharCode(byte), '')
+                new Uint8Array(bytes).reduce((data, byte) => data + String.fromCharCode(byte), '')
             );
 
-            const ext = file.name.toLowerCase().split('.').pop();
+            const ext = path.toLowerCase().split('.').pop();
             const mimeTypes = {
                 'jpg': 'image/jpeg',
                 'jpeg': 'image/jpeg',
@@ -84,17 +85,12 @@ export default function FolderSelector() {
                 'webp': 'image/webp'
             };
             const mimeType = mimeTypes[ext] || 'image/jpeg';
-
             const url = `data:${mimeType};base64,${base64}`;
 
-            setLoadedImages(prev => ({
-                ...prev,
-                [index]: url
-            }));
-
+            setImageCache(prev => ({ ...prev, [path]: url }));
             return url;
         } catch (err) {
-            console.error(`Error loading image ${index}:`, err);
+            console.error('Error loading image:', err);
             return null;
         }
     };
@@ -123,47 +119,130 @@ export default function FolderSelector() {
     }, [viewMode, imageFiles.length]);
 
     useEffect(() => {
-        if (viewMode === 'single' && imageFiles.length > 0) {
-            loadImage(currentIndex);
-            // Preload next and previous images
+        if (imageFiles.length > 0 && viewMode === 'single') {
+            // Preload current and adjacent images
+            loadImageData(imageFiles[currentIndex].path);
             if (currentIndex + 1 < imageFiles.length) {
-                loadImage(currentIndex + 1);
+                loadImageData(imageFiles[currentIndex + 1].path);
             }
-            if (currentIndex - 1 >= 0) {
-                loadImage(currentIndex - 1);
+            if (currentIndex > 0) {
+                loadImageData(imageFiles[currentIndex - 1].path);
             }
         }
-    }, [currentIndex, viewMode, imageFiles.length]);
+    }, [currentIndex, imageFiles, viewMode]);
 
-    const LazyImage = ({ index }) => {
-        const [url, setUrl] = useState(null);
-        const [isLoading, setIsLoading] = useState(true);
+    const SingleImageView = () => {
+        const [imgSrc, setImgSrc] = useState(null);
+        const [imgLoading, setImgLoading] = useState(true);
 
         useEffect(() => {
-            setIsLoading(true);
-            loadImage(index).then(imageUrl => {
-                setUrl(imageUrl);
-                setIsLoading(false);
+            setImgLoading(true);
+            loadImageData(imageFiles[currentIndex].path).then(url => {
+                setImgSrc(url);
+                setImgLoading(false);
             });
-        }, [index]);
+        }, [currentIndex]);
 
         return (
-            <div className="aspect-square relative bg-gray-200">
-                {isLoading ? (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <div className="text-gray-500">Loading...</div>
-                    </div>
-                ) : url ? (
-                    <img
-                        src={url}
-                        alt={imageFiles[index].name}
-                        className="w-full h-full object-cover"
-                    />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <div className="text-red-500">Error</div>
-                    </div>
-                )}
+            <div className="bg-white rounded-lg shadow-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <button
+                        onClick={prevImage}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                    >
+                        ← Previous
+                    </button>
+                    <span className="text-gray-700 font-medium">
+            {currentIndex + 1} / {imageFiles.length}
+          </span>
+                    <button
+                        onClick={nextImage}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                    >
+                        Next →
+                    </button>
+                </div>
+
+                <div className="flex flex-col items-center">
+                    {imgLoading ? (
+                        <div className="max-h-[70vh] w-full flex items-center justify-center bg-gray-200 rounded-lg" style={{ minHeight: '400px' }}>
+                            <div className="text-gray-500 text-lg">Loading...</div>
+                        </div>
+                    ) : (
+                        <img
+                            src={imgSrc}
+                            alt={imageFiles[currentIndex].name}
+                            className="max-h-[70vh] max-w-full object-contain rounded-lg shadow-md"
+                        />
+                    )}
+                    <p className="mt-4 text-gray-700 font-medium">
+                        {imageFiles[currentIndex].name}
+                    </p>
+                </div>
+
+                <p className="text-center text-sm text-gray-500 mt-4">
+                    Use arrow keys (← →) to navigate
+                </p>
+            </div>
+        );
+    };
+
+    const GridImageItem = ({ image, index }) => {
+        const [imgSrc, setImgSrc] = useState(null);
+        const [isVisible, setIsVisible] = useState(false);
+        const imgRef = useState(null);
+
+        useEffect(() => {
+            const observer = new IntersectionObserver(
+                ([entry]) => {
+                    if (entry.isIntersecting) {
+                        setIsVisible(true);
+                        observer.disconnect();
+                    }
+                },
+                { rootMargin: '100px' }
+            );
+
+            if (imgRef.current) {
+                observer.observe(imgRef.current);
+            }
+
+            return () => observer.disconnect();
+        }, []);
+
+        useEffect(() => {
+            if (isVisible && !imgSrc) {
+                loadImageData(image.path).then(setImgSrc);
+            }
+        }, [isVisible]);
+
+        return (
+            <div
+                ref={imgRef}
+                onClick={() => {
+                    setCurrentIndex(index);
+                    setViewMode('single');
+                }}
+                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+            >
+                <div className="aspect-square relative bg-gray-200">
+                    {imgSrc ? (
+                        <img
+                            src={imgSrc}
+                            alt={image.name}
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                            Loading...
+                        </div>
+                    )}
+                </div>
+                <div className="p-2">
+                    <p className="text-xs text-gray-700 truncate" title={image.name}>
+                        {image.name}
+                    </p>
+                </div>
             </div>
         );
     };
@@ -232,78 +311,13 @@ export default function FolderSelector() {
                     )}
                 </div>
 
-                {imageFiles.length > 0 && viewMode === 'single' && (
-                    <div className="bg-white rounded-lg shadow-lg p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <button
-                                onClick={prevImage}
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
-                            >
-                                ← Previous
-                            </button>
-                            <span className="text-gray-700 font-medium">
-                {currentIndex + 1} / {imageFiles.length}
-              </span>
-                            <button
-                                onClick={nextImage}
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
-                            >
-                                Next →
-                            </button>
-                        </div>
-
-                        <div className="flex flex-col items-center">
-                            {loadedImages[currentIndex] ? (
-                                <img
-                                    src={loadedImages[currentIndex]}
-                                    alt={imageFiles[currentIndex].name}
-                                    className="max-h-[70vh] max-w-full object-contain rounded-lg shadow-md"
-                                />
-                            ) : (
-                                <div className="max-h-[70vh] w-full flex items-center justify-center bg-gray-200 rounded-lg" style={{ minHeight: '400px' }}>
-                                    <div className="text-gray-500 text-lg">Loading image...</div>
-                                </div>
-                            )}
-                            <p className="mt-4 text-gray-700 font-medium">
-                                {imageFiles[currentIndex].name}
-                            </p>
-                        </div>
-
-                        <p className="text-center text-sm text-gray-500 mt-4">
-                            Use arrow keys (← →) to navigate
-                        </p>
-                    </div>
-                )}
+                {imageFiles.length > 0 && viewMode === 'single' && <SingleImageView />}
 
                 {imageFiles.length > 0 && viewMode === 'grid' && (
-                    <div className="bg-white rounded-lg shadow-lg p-6">
-                        <p className="text-gray-700 mb-4">
-                            {imageFiles.length} images found. Use Single View for better performance with large folders.
-                        </p>
-                        <div className="space-y-2 max-h-[70vh] overflow-y-auto">
-                            {imageFiles.map((image, index) => (
-                                <div
-                                    key={index}
-                                    onClick={() => {
-                                        setCurrentIndex(index);
-                                        setViewMode('single');
-                                    }}
-                                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                                >
-                                    <div className="w-12 h-12 bg-gray-300 rounded flex-shrink-0 flex items-center justify-center text-gray-600 text-xs">
-                                        IMG
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-gray-700 truncate" title={image.name}>
-                                            {image.name}
-                                        </p>
-                                    </div>
-                                    <span className="text-xs text-gray-500">
-                    {index + 1}
-                  </span>
-                                </div>
-                            ))}
-                        </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                        {imageFiles.map((image, index) => (
+                            <GridImageItem key={index} image={image} index={index} />
+                        ))}
                     </div>
                 )}
             </div>

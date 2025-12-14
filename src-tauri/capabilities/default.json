@@ -5,13 +5,15 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "core:path:default",
     "dialog:allow-open",
     "fs:allow-read-dir",
-    "fs:allow-read-file",
     {
-      "identifier": "fs:scope",
+      "identifier": "fs:allow-read-file",
       "allow": [
-        {"path": "$HOME/**"}
+        {
+          "path": "$HOME/**"
+        }
       ]
     }
   ]
