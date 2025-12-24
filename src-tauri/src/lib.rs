@@ -66,13 +66,47 @@ fn load_settings() -> Result<Settings, String> {
     Ok(settings)
 }
 
+#[tauri::command]
+async fn check_for_updates(app: tauri::AppHandle) -> Result<String, String> {
+    match app.updater_builder().check().await {
+        Ok(update) => {
+            if update.is_update_available() {
+                Ok(format!("Update available: {}", update.latest_version()))
+            } else {
+                Ok("App is up to date".to_string())
+            }
+        }
+        Err(e) => Err(format!("Failed to check for updates: {}", e))
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![read_image, save_settings, load_settings])
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .invoke_handler(tauri::generate_handler![
+            read_image,
+            save_settings,
+            load_settings,
+            check_for_updates
+        ])
+        .setup(|app| {
+            // Check for updates on startup
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if let Ok(update) = handle.updater_builder().check().await {
+                    if update.is_update_available() {
+                        println!("Update available: {}", update.latest_version());
+                        // Optionally auto-download and install
+                        // update.download_and_install().await.ok();
+                    }
+                }
+            });
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
