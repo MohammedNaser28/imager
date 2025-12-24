@@ -2,6 +2,7 @@ use tauri::Manager;
 use std::fs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use tauri_plugin_updater::UpdaterExt; // Required for .updater_builder()
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Shortcut {
@@ -68,24 +69,22 @@ fn load_settings() -> Result<Settings, String> {
 
 #[tauri::command]
 async fn check_for_updates(app: tauri::AppHandle) -> Result<String, String> {
-    match app.updater_builder().check().await {
-        Ok(update) => {
-            if update.is_update_available() {
-                Ok(format!("Update available: {}", update.latest_version()))
-            } else {
-                Ok("App is up to date".to_string())
-            }
+    // Note: use .updater() instead of .updater_builder()
+    match app.updater().map_err(|e| e.to_string())?.check().await {
+        Ok(Some(update)) => {
+            Ok(format!("Update available: {}", update.version))
         }
+        Ok(None) => Ok("App is up to date".to_string()),
         Err(e) => Err(format!("Failed to check for updates: {}", e))
     }
 }
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             read_image,
@@ -94,14 +93,14 @@ pub fn run() {
             check_for_updates
         ])
         .setup(|app| {
-            // Check for updates on startup
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                if let Ok(update) = handle.updater_builder().check().await {
-                    if update.is_update_available() {
-                        println!("Update available: {}", update.latest_version());
-                        // Optionally auto-download and install
-                        update.download_and_install().await.ok();
+                // Use .updater() instead of .updater_builder()
+                // .check() returns Result<Option<Update>, Error> in v2
+                if let Ok(Some(update)) = handle.updater().expect("failed to get updater").check().await {
+                    // Update found! download_and_install takes two closures for progress/chunks
+                    if let Ok(_) = update.download_and_install(|_progress, _chunk| {}, || {}).await {
+                        // Relaunch the app to apply the update
                         handle.restart();
                     }
                 }
