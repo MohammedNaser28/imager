@@ -33,18 +33,18 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install Linux dependencies
-              if: matrix.platform == 'ubuntu-latest'
-              run: |
-                sudo apt-get update
-                sudo apt-get install -y \
-                  libgtk-3-dev \
-                  libwebkit2gtk-4.1-dev \
-                  libappindicator3-dev \
-                  librsvg2-dev \
-                  patchelf \
-                  librpm-dev \
-                  rpm \
-                  libarchive-tools
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            librpm-dev \
+            rpm \
+            libarchive-tools
 
       - name: Install frontend dependencies
         run: pnpm install
