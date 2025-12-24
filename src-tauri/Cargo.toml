@@ -1,6 +1,6 @@
 [package]
 name = "imagers"
-version = "0.1.7"
+version = "0.1.8"
 description = "A Tauri App"
 authors = ["Mohammed Naser"]
 edition = "2021"
