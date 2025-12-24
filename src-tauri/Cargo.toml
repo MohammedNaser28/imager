@@ -18,12 +18,17 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+# 1. Remove features = ["updater"] from here
 tauri = { version = "2", features = [] }
+
+# 2. Add these specific plugins for Tauri v2
 tauri-plugin-updater = "2"
-tauri-plugin-process = "2" # Required for relaunching after update
+tauri-plugin-process = "2" # Required to restart the app after update
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
+
+# Your other dependencies
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 dirs = "5"

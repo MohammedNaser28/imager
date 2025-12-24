@@ -78,14 +78,15 @@ async fn check_for_updates(app: tauri::AppHandle) -> Result<String, String> {
         Err(e) => Err(format!("Failed to check for updates: {}", e))
     }
 }
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init()) // Essential for relaunching
+        .plugin(tauri_plugin_updater::Builder::new().build()) // Initialize updater
         .invoke_handler(tauri::generate_handler![
             read_image,
             save_settings,
@@ -95,12 +96,10 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                // Use .updater() instead of .updater_builder()
-                // .check() returns Result<Option<Update>, Error> in v2
+                // In V2, we use .updater() and check() returns Result<Option<Update>>
                 if let Ok(Some(update)) = handle.updater().expect("failed to get updater").check().await {
-                    // Update found! download_and_install takes two closures for progress/chunks
                     if let Ok(_) = update.download_and_install(|_progress, _chunk| {}, || {}).await {
-                        // Relaunch the app to apply the update
+                        // Restart the app to apply the update
                         handle.restart();
                     }
                 }
