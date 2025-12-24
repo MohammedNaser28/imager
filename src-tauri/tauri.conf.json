@@ -1,25 +1,12 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
-  "productName": "imagers",
+  "$schema": "https://schema.tauri.app/config/2.0.0",
+  "productName": "Imagers",
   "version": "0.1.0",
-  "identifier": "com.mohammed28.imagers",
+  "identifier": "com.imagers.app",
   "build": {
     "beforeDevCommand": "pnpm dev",
-    "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
-    "frontendDist": "../dist"
-  },
-  "app": {
-    "windows": [
-      {
-        "title": "imagers",
-        "width": 800,
-        "height": 600
-      }
-    ],
-    "security": {
-      "csp": null
-    }
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "pnpm build"
   },
   "bundle": {
     "active": true,
@@ -31,5 +18,30 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Imagers",
+        "width": 1200,
+        "height": 800
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "publisher": "Mohammed Naser",
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/MohammedNaser28/imager/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE5Mjk2NzJFMDg0OTYwMTEKUldRUllFa0lMbWNwR2N0OHdmbG9ldDJkRGRLNG0xL2Vla28rT0RvTWlydkRla0d1Vkk0aXpQMHkK%",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }
