@@ -462,25 +462,23 @@ export default function FolderSelector() {
   const GridImageItem = ({ image, index }) => {
     const [imgSrc, setImgSrc] = useState(null);
     const [isVisible, setIsVisible] = useState(false);
-    const imgRef = useState(null);
+    const [imgRef, setImgRef] = useState(null);
 
     useEffect(() => {
+      if (!imgRef) return;
+
       const observer = new IntersectionObserver(
         ([entry]) => {
           if (entry.isIntersecting) {
             setIsVisible(true);
-            observer.disconnect();
           }
         },
-        { rootMargin: '100px' }
+        { rootMargin: '200px' }
       );
 
-      if (imgRef.current) {
-        observer.observe(imgRef.current);
-      }
-
+      observer.observe(imgRef);
       return () => observer.disconnect();
-    }, []);
+    }, [imgRef]);
 
     useEffect(() => {
       if (isVisible && !imgSrc) {
@@ -492,7 +490,7 @@ export default function FolderSelector() {
 
     return (
       <div
-        ref={imgRef}
+        ref={setImgRef}
         onClick={() => {
           setCurrentIndex(index);
           setViewMode('single');
@@ -509,8 +507,12 @@ export default function FolderSelector() {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
-              Loading...
+            <div className="w-full h-full flex items-center justify-center">
+              {isVisible ? (
+                <div className="text-gray-500 text-xs">Loading...</div>
+              ) : (
+                <div className="text-gray-600 text-xs">📷</div>
+              )}
             </div>
           )}
           {isTagged && (
