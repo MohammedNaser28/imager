@@ -3,11 +3,12 @@
   "productName": "Imagers",
   "version": "0.1.7",
   "identifier": "com.imagers.app",
-  "build": {
-    "beforeDevCommand": "pnpm dev",
-    "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build"
-  },
+"build": {
+  "beforeDevCommand": "pnpm dev",
+  "devUrl": "http://localhost:1420",
+  "beforeBuildCommand": "pnpm build",
+  "frontendDist": "../dist" 
+},
   "app": {
     "windows": [
       {

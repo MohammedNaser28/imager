@@ -93,15 +93,14 @@ pub fn run() {
             load_settings,
             check_for_updates
         ])
-        .setup(|app| {
+    .setup(|app| {
             let handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                // In V2, we use .updater() and check() returns Result<Option<Update>>
+                // 2. Use .updater() instead of .updater_builder()
                 if let Ok(Some(update)) = handle.updater().expect("failed to get updater").check().await {
-                    if let Ok(_) = update.download_and_install(|_progress, _chunk| {}, || {}).await {
-                        // Restart the app to apply the update
-                        handle.restart();
-                    }
+                   // 3. The correct method is download_and_install
+                   // It requires two closures for progress and finish
+                   let _ = update.download_and_install(|_progress, _chunk| {}, || {}).await;
                 }
             });
             Ok(())
