@@ -101,7 +101,8 @@ pub fn run() {
                     if update.is_update_available() {
                         println!("Update available: {}", update.latest_version());
                         // Optionally auto-download and install
-                        // update.download_and_install().await.ok();
+                        update.download_and_install().await.ok();
+                        handle.restart();
                     }
                 }
             });
