@@ -280,41 +280,43 @@ export default function FolderSelector() {
 
     return (
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">Settings</h1>
+        <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 rounded-2xl shadow-2xl p-8 border border-purple-500/20">
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Settings
+            </h1>
             <button
               onClick={() => setCurrentPage('main')}
-              className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg"
+              className="bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-200 shadow-lg"
             >
               Back to Viewer
             </button>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">Output Path</h2>
+            <h2 className="text-xl font-semibold text-purple-300 mb-4">Output Path</h2>
             <div className="flex gap-4 items-center">
               <input
                 type="text"
                 value={outputPath}
                 readOnly
                 placeholder="Default: Same as source folder"
-                className="flex-1 border border-gray-300 rounded-lg px-4 py-2 bg-gray-50"
+                className="flex-1 bg-slate-800/50 border border-purple-500/30 rounded-lg px-4 py-3 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               <button
                 onClick={selectOutputPath}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg"
               >
                 Browse
               </button>
             </div>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-gray-400 mt-2">
               If not set, organized images will be saved in subfolders within the source folder
             </p>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">Add Keyboard Shortcut</h2>
+            <h2 className="text-xl font-semibold text-purple-300 mb-4">Add Keyboard Shortcut</h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <input
                 type="text"
@@ -322,27 +324,32 @@ export default function FolderSelector() {
                 value={newKey}
                 onChange={(e) => setNewKey(e.target.value)}
                 placeholder="Key (e.g. b)"
-                className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="bg-slate-800/50 border border-purple-500/30 rounded-lg px-4 py-3 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               <input
                 type="text"
                 value={newFolder}
                 onChange={(e) => setNewFolder(e.target.value)}
                 placeholder="Folder name"
-                className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="bg-slate-800/50 border border-purple-500/30 rounded-lg px-4 py-3 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               <select
                 value={newAction}
                 onChange={(e) => setNewAction(e.target.value)}
-                className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 border border-purple-400/50 rounded-lg px-4 py-3 text-white font-medium focus:outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
+                style={{
+                  backgroundImage: newAction === 'move' ? 'linear-gradient(to right, rgb(37, 99, 235), rgb(147, 51, 234))' :
+                                   newAction === 'copy' ? 'linear-gradient(to right, rgb(234, 88, 12), rgb(236, 72, 153))' :
+                                   'linear-gradient(to right, rgb(220, 38, 38), rgb(236, 72, 153))'
+                }}
               >
-                <option value="move">Move</option>
-                <option value="copy">Copy</option>
-                <option value="delete">Delete</option>
+                <option value="move" className="bg-slate-800 text-white">Move</option>
+                <option value="copy" className="bg-slate-800 text-white">Copy</option>
+                <option value="delete" className="bg-slate-800 text-white">Delete</option>
               </select>
               <button
                 onClick={addShortcut}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
+                className="bg-gradient-to-r from-orange-600 to-pink-600 hover:from-orange-500 hover:to-pink-500 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg"
               >
                 Add
               </button>
@@ -350,21 +357,21 @@ export default function FolderSelector() {
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">Current Shortcuts</h2>
+            <h2 className="text-xl font-semibold text-purple-300 mb-4">Current Shortcuts</h2>
             {shortcuts.length === 0 ? (
-              <p className="text-gray-500">No shortcuts configured</p>
+              <p className="text-gray-400">No shortcuts configured</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {shortcuts.map((shortcut) => (
-                  <div key={shortcut.key} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
-                    <div className="flex gap-4">
-                      <span className="font-mono font-bold text-lg text-blue-600">{shortcut.key.toUpperCase()}</span>
-                      <span className="text-gray-700">→ {shortcut.folder}</span>
-                      <span className="text-sm text-gray-500 capitalize">({shortcut.action})</span>
+                  <div key={shortcut.key} className="flex items-center justify-between bg-slate-800/50 backdrop-blur-sm p-4 rounded-lg border border-purple-500/20 hover:border-purple-500/40 transition-all">
+                    <div className="flex gap-4 items-center">
+                      <span className="font-mono font-bold text-2xl bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{shortcut.key.toUpperCase()}</span>
+                      <span className="text-gray-300">→ {shortcut.folder}</span>
+                      <span className="text-sm text-gray-400 capitalize px-3 py-1 bg-slate-700/50 rounded-full">({shortcut.action})</span>
                     </div>
                     <button
                       onClick={() => removeShortcut(shortcut.key)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                      className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
                     >
                       Remove
                     </button>
@@ -393,36 +400,36 @@ export default function FolderSelector() {
     const currentImageTag = imageTags[imageFiles[currentIndex].path];
 
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 rounded-2xl shadow-2xl p-6 border border-purple-500/20">
+        <div className="flex items-center justify-between mb-6">
           <button
             onClick={prevImage}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg"
           >
             ← Previous
           </button>
-          <span className="text-gray-700 font-medium">
+          <span className="text-purple-300 font-medium text-lg">
             {currentIndex + 1} / {imageFiles.length}
           </span>
           <button
             onClick={nextImage}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg"
           >
             Next →
           </button>
         </div>
 
         {currentImageTag && (
-          <div className="mb-4 p-3 bg-green-100 border border-green-300 rounded-lg">
-            <p className="text-green-800 text-center font-medium">
+          <div className="mb-4 p-4 bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-500/30 rounded-lg backdrop-blur-sm">
+            <p className="text-green-300 text-center font-medium">
               Tagged: {currentImageTag.key.toUpperCase()} → {currentImageTag.folder} ({currentImageTag.action})
             </p>
           </div>
         )}
 
         {shortcuts.length > 0 && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-blue-800 text-sm text-center">
+          <div className="mb-4 p-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-lg backdrop-blur-sm">
+            <p className="text-blue-300 text-sm text-center">
               Press shortcuts: {shortcuts.map(s => s.key.toUpperCase()).join(', ')}
             </p>
           </div>
@@ -430,22 +437,22 @@ export default function FolderSelector() {
         
         <div className="flex flex-col items-center">
           {imgLoading ? (
-            <div className="max-h-[70vh] w-full flex items-center justify-center bg-gray-200 rounded-lg" style={{ minHeight: '400px' }}>
-              <div className="text-gray-500 text-lg">Loading...</div>
+            <div className="max-h-[70vh] w-full flex items-center justify-center bg-slate-800/50 rounded-xl border border-purple-500/20" style={{ minHeight: '400px' }}>
+              <div className="text-purple-300 text-lg">Loading...</div>
             </div>
           ) : (
             <img
               src={imgSrc}
               alt={imageFiles[currentIndex].name}
-              className="max-h-[60vh] max-w-full object-contain rounded-lg shadow-md"
+              className="max-h-[60vh] max-w-full object-contain rounded-xl shadow-2xl border border-purple-500/20"
             />
           )}
-          <p className="mt-4 text-gray-700 font-medium">
+          <p className="mt-4 text-gray-300 font-medium">
             {imageFiles[currentIndex].name}
           </p>
         </div>
 
-        <p className="text-center text-sm text-gray-500 mt-4">
+        <p className="text-center text-sm text-gray-400 mt-4">
           Use arrow keys (← →) to navigate
         </p>
       </div>
@@ -490,11 +497,11 @@ export default function FolderSelector() {
           setCurrentIndex(index);
           setViewMode('single');
         }}
-        className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${
-          isTagged ? 'ring-4 ring-green-400' : ''
+        className={`bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-200 cursor-pointer border ${
+          isTagged ? 'ring-2 ring-green-400 border-green-400' : 'border-purple-500/20 hover:border-purple-500/40'
         }`}
       >
-        <div className="aspect-square relative bg-gray-200">
+        <div className="aspect-square relative bg-slate-800">
           {imgSrc ? (
             <img
               src={imgSrc}
@@ -502,18 +509,18 @@ export default function FolderSelector() {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+            <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
               Loading...
             </div>
           )}
           {isTagged && (
-            <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-bold">
+            <div className="absolute top-2 right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-lg">
               {imageTags[image.path].key.toUpperCase()}
             </div>
           )}
         </div>
-        <div className="p-2">
-          <p className="text-xs text-gray-700 truncate" title={image.name}>
+        <div className="p-3 bg-slate-900/50">
+          <p className="text-xs text-gray-300 truncate" title={image.name}>
             {image.name}
           </p>
         </div>
@@ -523,31 +530,31 @@ export default function FolderSelector() {
 
   if (currentPage === 'settings') {
     return (
-      <div className="min-h-screen bg-gray-100 p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 p-4">
         <SettingsPage />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 p-4">
       <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+        <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 rounded-2xl shadow-2xl p-8 mb-6 border border-purple-500/20">
+          <h1 className="text-3xl font-bold text-center mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
             Image Folder Viewer
           </h1>
           
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-3 mb-6">
             <button
               onClick={selectFolder}
               disabled={loading}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:from-gray-600 disabled:to-gray-500 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg"
             >
               {loading ? 'Loading...' : 'Select Folder'}
             </button>
             <button
               onClick={() => setCurrentPage('settings')}
-              className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+              className="bg-gradient-to-r from-orange-600 to-pink-600 hover:from-orange-500 hover:to-pink-500 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg"
             >
               Settings
             </button>
@@ -555,23 +562,23 @@ export default function FolderSelector() {
 
           {imageFiles.length > 0 && (
             <>
-              <div className="flex gap-2 mb-4">
+              <div className="flex gap-3 mb-6">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                  className={`flex-1 py-3 px-6 rounded-lg font-medium transition-all duration-200 ${
                     viewMode === 'grid'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                      : 'bg-slate-800/50 text-gray-300 hover:bg-slate-700/50 border border-purple-500/20'
                   }`}
                 >
                   Grid View
                 </button>
                 <button
                   onClick={() => setViewMode('single')}
-                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                  className={`flex-1 py-3 px-6 rounded-lg font-medium transition-all duration-200 ${
                     viewMode === 'single'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                      : 'bg-slate-800/50 text-gray-300 hover:bg-slate-700/50 border border-purple-500/20'
                   }`}
                 >
                   Single View
@@ -582,7 +589,7 @@ export default function FolderSelector() {
                 <button
                   onClick={processImages}
                   disabled={processing}
-                  className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors mb-4"
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 disabled:from-gray-600 disabled:to-gray-500 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg mb-6"
                 >
                   {processing ? 'Processing...' : `Process ${Object.keys(imageTags).length} Tagged Images`}
                 </button>
@@ -591,22 +598,22 @@ export default function FolderSelector() {
           )}
 
           {selectedPath && (
-            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm font-semibold text-green-800 mb-1">
+            <div className="mt-6 p-4 bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-500/30 rounded-lg backdrop-blur-sm">
+              <p className="text-sm font-semibold text-green-300 mb-1">
                 Selected Folder:
               </p>
-              <p className="text-sm text-green-700 break-all">
+              <p className="text-sm text-green-200 break-all">
                 {selectedPath}
               </p>
-              <p className="text-xs text-green-600 mt-2">
+              <p className="text-xs text-green-300 mt-2">
                 Found {imageFiles.length} image(s) | Tagged: {Object.keys(imageTags).length}
               </p>
             </div>
           )}
 
           {error && (
-            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-700">
+            <div className="mt-6 p-4 bg-gradient-to-r from-red-900/30 to-pink-900/30 border border-red-500/30 rounded-lg backdrop-blur-sm">
+              <p className="text-sm text-red-300">
                 {error}
               </p>
             </div>
