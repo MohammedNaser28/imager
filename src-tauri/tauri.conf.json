@@ -8,17 +8,6 @@
     "devUrl": "http://localhost:5173",
     "beforeBuildCommand": "pnpm build"
   },
-  "bundle": {
-    "active": true,
-    "targets": "all",
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ]
-  },
   "app": {
     "windows": [
       {
@@ -32,7 +21,18 @@
     }
   },
   "bundle": {
+    "active": true,
+    "targets": "all",
     "publisher": "Mohammed Naser",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
     "updater": {
       "active": true,
       "endpoints": [
@@ -42,6 +42,9 @@
       "windows": {
         "installMode": "passive"
       }
-    }
+    },
+    "dialog": {},
+    "fs": {},
+    "opener": {}
   }
 }
