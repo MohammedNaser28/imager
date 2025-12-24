@@ -7,7 +7,7 @@
     "core:default",
     "core:path:default",
     "dialog:allow-open",
-    "fs:allow-read-dir",
+    "fs:allow-read-dir","dialog:allow-save", 
     "fs:allow-copy-file",
     "fs:allow-remove",
     "fs:allow-mkdir",

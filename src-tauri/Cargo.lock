@@ -1757,7 +1757,7 @@ dependencies = [
 
 [[package]]
 name = "imagers"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "dirs 5.0.1",
  "serde",

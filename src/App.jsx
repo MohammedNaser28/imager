@@ -1,8 +1,13 @@
+
+// In App.jsx
 import { useState, useEffect } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readDir, mkdir, copyFile, remove } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
+import { save } from '@tauri-apps/plugin-dialog'; // Add 'save' to your imports
 
+// ADD THIS LINE:
+import { Settings, FolderOpen } from 'lucide-react';
 export default function FolderSelector() {
   const [selectedPath, setSelectedPath] = useState('');
   const [imageFiles, setImageFiles] = useState([]);
@@ -12,7 +17,7 @@ export default function FolderSelector() {
   const [viewMode, setViewMode] = useState('single');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState('main');
-  
+
   // Shortcuts and tagging
   const [shortcuts, setShortcuts] = useState([]);
   const [imageTags, setImageTags] = useState({});
@@ -23,7 +28,52 @@ export default function FolderSelector() {
   useEffect(() => {
     loadSettingsFromDisk();
   }, []);
+  // Add these functions inside your FolderSelector component
 
+
+const changeConfigLocation = async () => {
+  try {
+    const selected = await save({
+      filters: [{ name: 'JSON Settings', extensions: ['json'] }],
+      defaultPath: 'settings.json',
+      title: "Select or Create Settings File",
+    });
+
+    if (selected) {
+      // 1. Tell Rust to switch the active path in memory
+      await invoke('set_custom_config_path', { path: selected });
+      
+      // 2. Load settings from the NEW path immediately
+      const settings = await invoke('load_settings');
+      
+      // 3. Update the UI with whatever is in that file
+      // If it's a new empty file, shortcuts will become [] (This is correct)
+      setShortcuts(settings.shortcuts || []);
+      setOutputPath(settings.output_path || '');
+      
+      alert(`Switched to: ${selected}`);
+    }
+  } catch (err) {
+    setError("Failed to change config: " + err);
+  }
+};
+  const selectOutputPath = async () => {
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: "Select Output Folder",
+      });
+
+      if (selected) {
+        setOutputPath(selected);
+        // Save immediately so it persists in the current config
+        await saveSettingsToDisk(shortcuts, selected);
+      }
+    } catch (err) {
+      setError("Failed to set output path: " + err);
+    }
+  };
   const loadSettingsFromDisk = async () => {
     try {
       const settings = await invoke('load_settings');
@@ -52,7 +102,7 @@ export default function FolderSelector() {
     try {
       setError('');
       setLoading(true);
-      
+
       const selected = await open({
         directory: true,
         multiple: false,
@@ -78,7 +128,7 @@ export default function FolderSelector() {
   const loadImageList = async (folderPath) => {
     try {
       const entries = await readDir(folderPath);
-      
+
       const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
       const images = entries.filter(entry => {
         if (!entry.isFile) return false;
@@ -111,7 +161,7 @@ export default function FolderSelector() {
       const base64 = btoa(
         new Uint8Array(bytes).reduce((data, byte) => data + String.fromCharCode(byte), '')
       );
-      
+
       const ext = path.toLowerCase().split('.').pop();
       const mimeTypes = {
         'jpg': 'image/jpeg',
@@ -123,7 +173,7 @@ export default function FolderSelector() {
       };
       const mimeType = mimeTypes[ext] || 'image/jpeg';
       const url = `data:${mimeType};base64,${base64}`;
-      
+
       setImageCache(prev => ({ ...prev, [path]: url }));
       return url;
     } catch (err) {
@@ -143,7 +193,7 @@ export default function FolderSelector() {
     }));
   };
 
-  const processImages = async () => {
+const processImages = async () => {
     if (Object.keys(imageTags).length === 0) {
       setError('No images tagged');
       return;
@@ -153,17 +203,20 @@ export default function FolderSelector() {
     setError('');
 
     try {
+      // FIX: Use the outputPath state if it exists, otherwise use selectedPath
       const basePath = outputPath || selectedPath;
 
       for (const [imagePath, shortcut] of Object.entries(imageTags)) {
+        // Construct the subfolder path within your custom Output Path
         const folderPath = `${basePath}/${shortcut.folder}`;
         const fileName = imagePath.split('/').pop();
         const destPath = `${folderPath}/${fileName}`;
 
+        // Ensure the sub-directory exists in the new location
         try {
           await mkdir(folderPath, { recursive: true });
         } catch (e) {
-          // Folder might already exist
+          // Folder already exists
         }
 
         if (shortcut.action === 'move') {
@@ -182,7 +235,6 @@ export default function FolderSelector() {
       alert('Images processed successfully!');
     } catch (err) {
       setError(`Error processing images: ${err?.message || err?.toString()}`);
-      console.error('Error:', err);
     } finally {
       setProcessing(false);
     }
@@ -314,7 +366,43 @@ export default function FolderSelector() {
               If not set, organized images will be saved in subfolders within the source folder
             </p>
           </div>
+          <div className="space-y-6">
+            <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-4">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Settings className="w-5 h-5" /> App Configuration
+              </h3>
+              <div className="flex flex-col gap-2">
+                <p className="text-sm text-gray-400">
+                  Choose where your settings (shortcuts & output paths) are saved.
+                </p>
+                <button
+                  onClick={changeConfigLocation}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors text-sm w-fit"
+                >
+                  Change/Load Config File
+                </button>
+              </div>
+            </div>
 
+
+            <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-4">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <FolderOpen className="w-5 h-5" /> Default Output Folder
+              </h3>
+              <div className="flex flex-col gap-2">
+                <p className="text-sm text-gray-400">
+                  Currently saving tagged images to:
+                  <span className="block text-indigo-300 break-all mt-1">{outputPath || 'Not set'}</span>
+                </p>
+                <button
+                  onClick={selectOutputPath}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors text-sm w-fit"
+                >
+                  Select Output Folder
+                </button>
+              </div>
+            </div>
+          </div>
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-purple-300 mb-4">Add Keyboard Shortcut</h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
@@ -339,8 +427,8 @@ export default function FolderSelector() {
                 className="bg-gradient-to-r from-blue-600 to-purple-600 border border-purple-400/50 rounded-lg px-4 py-3 text-white font-medium focus:outline-none focus:ring-2 focus:ring-purple-400 cursor-pointer"
                 style={{
                   backgroundImage: newAction === 'move' ? 'linear-gradient(to right, rgb(37, 99, 235), rgb(147, 51, 234))' :
-                                   newAction === 'copy' ? 'linear-gradient(to right, rgb(234, 88, 12), rgb(236, 72, 153))' :
-                                   'linear-gradient(to right, rgb(220, 38, 38), rgb(236, 72, 153))'
+                    newAction === 'copy' ? 'linear-gradient(to right, rgb(234, 88, 12), rgb(236, 72, 153))' :
+                      'linear-gradient(to right, rgb(220, 38, 38), rgb(236, 72, 153))'
                 }}
               >
                 <option value="move" className="bg-slate-800 text-white">Move</option>
@@ -355,6 +443,8 @@ export default function FolderSelector() {
               </button>
             </div>
           </div>
+
+
 
           <div>
             <h2 className="text-xl font-semibold text-purple-300 mb-4">Current Shortcuts</h2>
@@ -434,7 +524,7 @@ export default function FolderSelector() {
             </p>
           </div>
         )}
-        
+
         <div className="flex flex-col items-center">
           {imgLoading ? (
             <div className="max-h-[70vh] w-full flex items-center justify-center bg-slate-800/50 rounded-xl border border-purple-500/20" style={{ minHeight: '400px' }}>
@@ -495,9 +585,8 @@ export default function FolderSelector() {
           setCurrentIndex(index);
           setViewMode('single');
         }}
-        className={`bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-200 cursor-pointer border ${
-          isTagged ? 'ring-2 ring-green-400 border-green-400' : 'border-purple-500/20 hover:border-purple-500/40'
-        }`}
+        className={`bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-200 cursor-pointer border ${isTagged ? 'ring-2 ring-green-400 border-green-400' : 'border-purple-500/20 hover:border-purple-500/40'
+          }`}
       >
         <div className="aspect-square relative bg-slate-800">
           {imgSrc ? (
@@ -545,7 +634,7 @@ export default function FolderSelector() {
           <h1 className="text-3xl font-bold text-center mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
             Image Folder Viewer
           </h1>
-          
+
           <div className="flex gap-3 mb-6">
             <button
               onClick={selectFolder}
@@ -567,21 +656,19 @@ export default function FolderSelector() {
               <div className="flex gap-3 mb-6">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`flex-1 py-3 px-6 rounded-lg font-medium transition-all duration-200 ${
-                    viewMode === 'grid'
+                  className={`flex-1 py-3 px-6 rounded-lg font-medium transition-all duration-200 ${viewMode === 'grid'
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
                       : 'bg-slate-800/50 text-gray-300 hover:bg-slate-700/50 border border-purple-500/20'
-                  }`}
+                    }`}
                 >
                   Grid View
                 </button>
                 <button
                   onClick={() => setViewMode('single')}
-                  className={`flex-1 py-3 px-6 rounded-lg font-medium transition-all duration-200 ${
-                    viewMode === 'single'
+                  className={`flex-1 py-3 px-6 rounded-lg font-medium transition-all duration-200 ${viewMode === 'single'
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
                       : 'bg-slate-800/50 text-gray-300 hover:bg-slate-700/50 border border-purple-500/20'
-                  }`}
+                    }`}
                 >
                   Single View
                 </button>
