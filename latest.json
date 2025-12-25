@@ -1,5 +1,5 @@
 {
-  "version": "0.2.3",
+  "version": "0.2.5",
   "notes": "Multi-platform support: Custom config paths and automated sorting.",
   "pub_date": "2023-10-25T12:00:00Z",
   "platforms": {
