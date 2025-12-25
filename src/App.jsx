@@ -435,7 +435,7 @@ export default function FolderSelector() {
               </div>
             </div>
           </div>
-          <div className="mb-8">
+          <div className="mb-8 mt-10">
             <h2 className="text-xl font-semibold text-purple-300 mb-4">Add Keyboard Shortcut</h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <input
@@ -477,7 +477,33 @@ export default function FolderSelector() {
           </div>
 
 
-          <div className="p-4 bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-pink-900/20 border border-blue-500/30 rounded-xl space-y-4">
+   
+          <div>
+            <h2 className="text-xl font-semibold text-purple-300 mb-4">Current Shortcuts</h2>
+            {shortcuts.length === 0 ? (
+              <p className="text-gray-400">No shortcuts configured</p>
+            ) : (
+              <div className="space-y-3">
+                {shortcuts.map((shortcut) => (
+                  <div key={shortcut.key} className="flex items-center justify-between bg-slate-800/50 backdrop-blur-sm p-4 rounded-lg border border-purple-500/20 hover:border-purple-500/40 transition-all">
+                    <div className="flex gap-4 items-center">
+                      <span className="font-mono font-bold text-2xl bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{shortcut.key.toUpperCase()}</span>
+                      <span className="text-gray-300">→ {shortcut.folder}</span>
+                      <span className="text-sm text-gray-400 capitalize px-3 py-1 bg-slate-700/50 rounded-full">({shortcut.action})</span>
+                    </div>
+                    <button
+                      onClick={() => removeShortcut(shortcut.key)}
+                      className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+                 <div className="p-4 bg-gradient-to-br mt-10 from-blue-900/20 via-purple-900/20 to-pink-900/20 border border-blue-500/30 rounded-xl space-y-4">
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -529,32 +555,6 @@ export default function FolderSelector() {
           </div>
 
 
-          <div>
-            <h2 className="text-xl font-semibold text-purple-300 mb-4">Current Shortcuts</h2>
-            {shortcuts.length === 0 ? (
-              <p className="text-gray-400">No shortcuts configured</p>
-            ) : (
-              <div className="space-y-3">
-                {shortcuts.map((shortcut) => (
-                  <div key={shortcut.key} className="flex items-center justify-between bg-slate-800/50 backdrop-blur-sm p-4 rounded-lg border border-purple-500/20 hover:border-purple-500/40 transition-all">
-                    <div className="flex gap-4 items-center">
-                      <span className="font-mono font-bold text-2xl bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{shortcut.key.toUpperCase()}</span>
-                      <span className="text-gray-300">→ {shortcut.folder}</span>
-                      <span className="text-sm text-gray-400 capitalize px-3 py-1 bg-slate-700/50 rounded-full">({shortcut.action})</span>
-                    </div>
-                    <button
-                      onClick={() => removeShortcut(shortcut.key)}
-                      className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          
         </div>
         
       </div>
