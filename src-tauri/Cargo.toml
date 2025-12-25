@@ -1,6 +1,6 @@
 [package]
 name = "imagers"
-version = "0.2.6"
+version = "0.2.7"
 description = "Imagers is a high-performance, cross-platform desktop application built with Tauri v2 and React. It streamlines image management by allowing users to quickly organize, tag, and move photos using customizable keyboard shortcuts."
 authors = ["Mohammed Naser"]
 edition = "2021"
