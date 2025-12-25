@@ -24,39 +24,68 @@ export default function FolderSelector() {
   const [processing, setProcessing] = useState(false);
   const [outputPath, setOutputPath] = useState('');
 
+
+  const [updateStatus, setUpdateStatus] = useState('');
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   // Load settings on mount
   useEffect(() => {
     loadSettingsFromDisk();
   }, []);
-  // Add these functions inside your FolderSelector component
 
+  const checkForUpdates = async () => {
+    setIsCheckingUpdate(true);
+    setUpdateStatus('Checking for updates...');
 
-const changeConfigLocation = async () => {
-  try {
-    const selected = await save({
-      filters: [{ name: 'JSON Settings', extensions: ['json'] }],
-      defaultPath: 'settings.json',
-      title: "Select or Create Settings File",
-    });
+    try {
+      const result = await invoke('check_for_updates');
+      setUpdateStatus(result);
 
-    if (selected) {
-      // 1. Tell Rust to switch the active path in memory
-      await invoke('set_custom_config_path', { path: selected });
-      
-      // 2. Load settings from the NEW path immediately
-      const settings = await invoke('load_settings');
-      
-      // 3. Update the UI with whatever is in that file
-      // If it's a new empty file, shortcuts will become [] (This is correct)
-      setShortcuts(settings.shortcuts || []);
-      setOutputPath(settings.output_path || '');
-      
-      alert(`Switched to: ${selected}`);
+      if (result.includes('Update available')) {
+        const install = confirm('An update is available! Would you like to download and install it now?\n\nThe app will restart after installation.');
+
+        if (install) {
+          setUpdateStatus('Downloading update...');
+          const installResult = await invoke('install_update');
+          setUpdateStatus(installResult);
+
+          if (installResult.includes('successfully')) {
+            alert('Update installed! Please restart the application.');
+          }
+        }
+      }
+    } catch (err) {
+      setUpdateStatus(`Update check failed: ${err}`);
+      console.error('Update error:', err);
+    } finally {
+      setIsCheckingUpdate(false);
     }
-  } catch (err) {
-    setError("Failed to change config: " + err);
-  }
-};
+  };
+  const changeConfigLocation = async () => {
+    try {
+      const selected = await save({
+        filters: [{ name: 'JSON Settings', extensions: ['json'] }],
+        defaultPath: 'settings.json',
+        title: "Select or Create Settings File",
+      });
+
+      if (selected) {
+        // 1. Tell Rust to switch the active path in memory
+        await invoke('set_custom_config_path', { path: selected });
+
+        // 2. Load settings from the NEW path immediately
+        const settings = await invoke('load_settings');
+
+        // 3. Update the UI with whatever is in that file
+        // If it's a new empty file, shortcuts will become [] (This is correct)
+        setShortcuts(settings.shortcuts || []);
+        setOutputPath(settings.output_path || '');
+
+        alert(`Switched to: ${selected}`);
+      }
+    } catch (err) {
+      setError("Failed to change config: " + err);
+    }
+  };
   const selectOutputPath = async () => {
     try {
       const selected = await open({
@@ -193,7 +222,7 @@ const changeConfigLocation = async () => {
     }));
   };
 
-const processImages = async () => {
+  const processImages = async () => {
     if (Object.keys(imageTags).length === 0) {
       setError('No images tagged');
       return;
@@ -333,7 +362,8 @@ const processImages = async () => {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 rounded-2xl shadow-2xl p-8 border border-purple-500/20">
-          <div className="flex items-center justify-between mb-8">
+        
+         <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
               Settings
             </h1>
@@ -344,6 +374,8 @@ const processImages = async () => {
               Back to Viewer
             </button>
           </div>
+
+
 
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-purple-300 mb-4">Output Path</h2>
@@ -445,6 +477,57 @@ const processImages = async () => {
           </div>
 
 
+          <div className="p-4 bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-pink-900/20 border border-blue-500/30 rounded-xl space-y-4">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Software Updates
+            </h3>
+
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-gray-300">
+                Check for the latest version of Imagers
+              </p>
+
+              {updateStatus && (
+                <div className={`p-3 rounded-lg text-sm ${updateStatus.includes('up to date')
+                    ? 'bg-green-900/30 border border-green-500/30 text-green-300'
+                    : updateStatus.includes('available')
+                      ? 'bg-blue-900/30 border border-blue-500/30 text-blue-300'
+                      : updateStatus.includes('failed')
+                        ? 'bg-red-900/30 border border-red-500/30 text-red-300'
+                        : 'bg-purple-900/30 border border-purple-500/30 text-purple-300'
+                  }`}>
+                  {updateStatus}
+                </div>
+              )}
+
+              <button
+                onClick={checkForUpdates}
+                disabled={isCheckingUpdate}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-500 hover:via-purple-500 hover:to-pink-500 disabled:from-gray-600 disabled:to-gray-500 text-white rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none font-semibold text-sm w-fit flex items-center gap-2"
+              >
+                {isCheckingUpdate ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Checking...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Check for Updates
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
 
           <div>
             <h2 className="text-xl font-semibold text-purple-300 mb-4">Current Shortcuts</h2>
@@ -470,7 +553,10 @@ const processImages = async () => {
               </div>
             )}
           </div>
+
+          
         </div>
+        
       </div>
     );
   };
@@ -657,8 +743,8 @@ const processImages = async () => {
                 <button
                   onClick={() => setViewMode('grid')}
                   className={`flex-1 py-3 px-6 rounded-lg font-medium transition-all duration-200 ${viewMode === 'grid'
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                      : 'bg-slate-800/50 text-gray-300 hover:bg-slate-700/50 border border-purple-500/20'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                    : 'bg-slate-800/50 text-gray-300 hover:bg-slate-700/50 border border-purple-500/20'
                     }`}
                 >
                   Grid View
@@ -666,8 +752,8 @@ const processImages = async () => {
                 <button
                   onClick={() => setViewMode('single')}
                   className={`flex-1 py-3 px-6 rounded-lg font-medium transition-all duration-200 ${viewMode === 'single'
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                      : 'bg-slate-800/50 text-gray-300 hover:bg-slate-700/50 border border-purple-500/20'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                    : 'bg-slate-800/50 text-gray-300 hover:bg-slate-700/50 border border-purple-500/20'
                     }`}
                 >
                   Single View
