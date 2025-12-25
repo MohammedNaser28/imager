@@ -5,9 +5,8 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { readDir, mkdir, copyFile, remove } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { save } from '@tauri-apps/plugin-dialog'; // Add 'save' to your imports
+import { Settings, FolderOpen, Archive, Zap, Loader2 } from 'lucide-react';
 
-// ADD THIS LINE:
-import { Settings, FolderOpen } from 'lucide-react';
 export default function FolderSelector() {
   const [selectedPath, setSelectedPath] = useState('');
   const [imageFiles, setImageFiles] = useState([]);
@@ -17,7 +16,8 @@ export default function FolderSelector() {
   const [viewMode, setViewMode] = useState('single');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState('main');
-
+const [isCompressing, setIsCompressing] = useState(false);
+const [isArchiving, setIsArchiving] = useState(false);
   // Shortcuts and tagging
   const [shortcuts, setShortcuts] = useState([]);
   const [imageTags, setImageTags] = useState({});
@@ -86,6 +86,43 @@ export default function FolderSelector() {
       setError("Failed to change config: " + err);
     }
   };
+
+  const handleCompressAll = async () => {
+    setProcessing(true);
+    setIsCompressing(true);
+    try {
+        // Assuming you have a list of image paths in `imageFiles`
+        for (const file of imageFiles) {
+            await invoke('process_image', { path: file.path, targetExt: 'webp' });
+        }
+        alert('Compression complete!');
+    } catch (err) {
+        setError('Compression failed: ' + err);
+    } finally {
+        setProcessing(false);
+        setIsCompressing(false);
+    }
+};
+
+const handleCreateArchive = async () => {
+    const savePath = await save({
+        filters: [{ name: 'Archive', extensions: ['zip'] }]
+    });
+    if (!savePath) return;
+
+    setProcessing(true);
+    setIsArchiving(true);
+    try {
+        const paths = imageFiles.map(f => f.path);
+        await invoke('create_zip', { files: paths, outZip: savePath });
+        alert('Archive created successfully!');
+    } catch (err) {
+        setError('Archiving failed: ' + err);
+    } finally {
+        setProcessing(false);
+        setIsArchiving(false);
+    }
+};
   const selectOutputPath = async () => {
     try {
       const selected = await open({
@@ -771,6 +808,30 @@ export default function FolderSelector() {
               )}
             </>
           )}
+{selectedPath && (
+  <div className="mt-4 grid grid-cols-2 gap-4">
+    {/* Compression Button */}
+    <button
+      onClick={handleCompressAll}
+      disabled={processing}
+      className="flex items-center justify-center gap-2 p-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800/50 rounded-lg transition-all"
+    >
+      {isCompressing ? <Loader2 className="animate-spin" /> : <Zap size={18} />}
+      <span>Compress to WebP</span>
+    </button>
+
+    {/* Archive Button */}
+    <button
+      onClick={handleCreateArchive}
+      disabled={processing}
+      className="flex items-center justify-center gap-2 p-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800/50 rounded-lg transition-all"
+    >
+      {isArchiving ? <Loader2 className="animate-spin" /> : <Archive size={18} />}
+      <span>Archive to ZIP</span>
+    </button>
+  </div>
+)}
+
 
           {selectedPath && (
             <div className="mt-6 p-4 bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-500/30 rounded-lg backdrop-blur-sm">
@@ -794,6 +855,7 @@ export default function FolderSelector() {
             </div>
           )}
         </div>
+
 
         {imageFiles.length > 0 && viewMode === 'single' && <SingleImageView />}
 

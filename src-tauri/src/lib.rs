@@ -4,7 +4,13 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::State;
-use tauri_plugin_updater::UpdaterExt; // ADD THIS LINE
+use tauri_plugin_updater::UpdaterExt; 
+use std::fs::File;
+use std::io::Write;
+use zip::write::FileOptions;
+use image::ImageFormat;
+use std::path::Path;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Shortcut {
     key: String,
@@ -122,6 +128,45 @@ async fn install_update(app: tauri::AppHandle) -> Result<String, String> {
         }
         Err(e) => Err(format!("Updater not available: {}", e))
     }
+}
+
+
+// IMAGE OPERATION
+
+#[tauri::command]
+async fn convert_image(input_path: String, output_path: String, format: String) -> Result<String, String> {
+    let img = image::open(&input_path).map_err(|e| e.to_string())?;
+    
+    let target_format = match format.to_lowercase().as_str() {
+        "jpg" | "jpeg" => ImageFormat::Jpeg,
+        "png" => ImageFormat::Png,
+        "webp" => ImageFormat::WebP,
+        _ => return Err("Unsupported format".into()),
+    };
+
+    img.save_with_format(&output_path, target_format)
+        .map_err(|e| e.to_string())?;
+
+    Ok(format!("Converted to {}", output_path))
+}
+
+#[tauri::command]
+async fn archive_images(files: Vec<String>, dest_zip: String) -> Result<String, String> {
+    let path = std::path::Path::new(&dest_zip);
+    let file = File::create(path).map_err(|e| e.to_string())?;
+    let mut zip = zip::ZipWriter::new(file);
+let options = FileOptions::<()>::default().compression_method(zip::CompressionMethod::Stored);
+    for file_path in files {
+        let p = Path::new(&file_path);
+        let name = p.file_name().unwrap().to_str().unwrap();
+        
+        zip.start_file(name, options).map_err(|e| e.to_string())?;
+        let bytes = std::fs::read(file_path).map_err(|e| e.to_string())?;
+        zip.write_all(&bytes).map_err(|e| e.to_string())?;
+    }
+    
+    zip.finish().map_err(|e| e.to_string())?;
+    Ok("Archive created successfully".into())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
