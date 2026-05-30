@@ -17,6 +17,14 @@ struct Shortcut {
     action: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct ImageFile {
+    name: String,
+    path: String,
+}
+
+const IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "gif", "bmp", "webp"];
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Settings {
     shortcuts: Vec<Shortcut>,
@@ -79,6 +87,44 @@ fn load_settings(state: State<'_, AppState>) -> Result<Settings, String> {
     }
     let data = fs::read_to_string(config_path).map_err(|e| e.to_string())?;
     serde_json::from_str(&data).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn read_images(path: String) -> Result<Vec<ImageFile>, String> {
+    let mut images = Vec::new();
+    collect_images(&Path::new(&path), &mut images)?;
+
+    if images.is_empty() {
+        return Err("No images found in the selected folder or its subfolders".into());
+    }
+
+    Ok(images)
+}
+
+fn collect_images(dir: &Path, images: &mut Vec<ImageFile>) -> Result<(), String> {
+    let entries = fs::read_dir(dir).map_err(|e| format!("Cannot read directory: {}", e))?;
+
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("Error reading entry: {}", e))?;
+        let path = entry.path();
+
+        if path.is_dir() {
+            collect_images(&path, images)?;
+        } else if path.is_file() {
+            if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+                if IMAGE_EXTENSIONS.contains(&ext.to_lowercase().as_str()) {
+                    if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                        images.push(ImageFile {
+                            name: name.to_string(),
+                            path: path.to_string_lossy().to_string(),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -175,6 +221,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             save_settings,
             load_settings,
+            read_images,
             check_for_updates,
             install_update,
             set_custom_config_path,
