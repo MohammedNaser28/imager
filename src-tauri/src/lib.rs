@@ -184,7 +184,9 @@ pub fn run() {
             load_settings,
             check_for_updates,
             install_update,
-            set_custom_config_path
+            set_custom_config_path,
+            convert_image,
+            archive_images
         ])
         .setup(|app| {
             let handle = app.handle().clone();
