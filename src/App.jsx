@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { readDir, mkdir, copyFile, remove } from '@tauri-apps/plugin-fs';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
-import { FolderOpen, Archive, Zap, Grid3X3, Image } from 'lucide-react';
+import { FolderOpen, Archive, Zap, Grid3X3, Image as ImageIcon } from 'lucide-react';
 import Button from './components/button';
 import SettingsPage from './components/settings';
 
@@ -456,7 +456,7 @@ export default function FolderSelector() {
                 <Button
                   variant={viewMode === 'single' ? 'primary' : 'secondary'}
                   onClick={() => setViewMode('single')}
-                  icon={Image}
+                  icon={ImageIcon}
                   className="flex-1"
                 >
                   Single View
