@@ -91,9 +91,13 @@ const [isArchiving, setIsArchiving] = useState(false);
     setProcessing(true);
     setIsCompressing(true);
     try {
-        // Assuming you have a list of image paths in `imageFiles`
         for (const file of imageFiles) {
-            await invoke('process_image', { path: file.path, targetExt: 'webp' });
+            const outputPath = file.path.replace(/\.\w+$/, '.webp');
+            await invoke('convert_image', {
+                inputPath: file.path,
+                outputPath,
+                format: 'webp',
+            });
         }
         alert('Compression complete!');
     } catch (err) {
