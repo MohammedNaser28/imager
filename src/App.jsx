@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { mkdir, copyFile, remove } from '@tauri-apps/plugin-fs';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
@@ -325,54 +325,27 @@ export default function FolderSelector() {
     );
   };
 
-  const GridImageItem = ({ image, index }) => {
-    const [isVisible, setIsVisible] = useState(false);
-    const [imgRef, setImgRef] = useState(null);
-
-    useEffect(() => {
-      if (!imgRef) return;
-
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) setIsVisible(true);
-        },
-        { rootMargin: '200px' },
-      );
-
-      observer.observe(imgRef);
-      return () => observer.disconnect();
-    }, [imgRef]);
-
-    const isTagged = !!imageTags[image.path];
-
+  const GridImageItem = memo(({ image, index, isTagged, tagKey, onSelect }) => {
     return (
       <div
-        ref={setImgRef}
-        onClick={() => {
-          setCurrentIndex(index);
-          setViewMode('single');
-        }}
-        className={`bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-200 cursor-pointer border ${
-          isTagged
-            ? 'ring-2 ring-green-400 border-green-400'
-            : 'border-purple-500/20 hover:border-purple-500/40'
-        }`}
+        onClick={() => onSelect(index)}
+        className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-200 cursor-pointer border"
+        style={{ contentVisibility: 'auto', containIntrinsicSize: '200px' }}
       >
-        <div className="aspect-square relative bg-slate-800">
-          {isVisible ? (
-            <img
-              src={convertFileSrc(image.path)}
-              alt={image.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="text-gray-600 text-xs">📷</div>
-            </div>
-          )}
+        <div
+          className={`aspect-square relative bg-slate-800 rounded-t-xl ${
+            isTagged ? 'ring-2 ring-green-400 border-green-400' : 'border-purple-500/20'
+          }`}
+        >
+          <img
+            src={convertFileSrc(image.path)}
+            alt={image.name}
+            loading="lazy"
+            className="w-full h-full object-cover"
+          />
           {isTagged && (
             <div className="absolute top-2 right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-lg">
-              {imageTags[image.path].key.toUpperCase()}
+              {tagKey}
             </div>
           )}
         </div>
@@ -383,7 +356,7 @@ export default function FolderSelector() {
         </div>
       </div>
     );
-  };
+  });
 
   if (currentPage === 'settings') {
     return (
@@ -510,7 +483,17 @@ export default function FolderSelector() {
         {imageFiles.length > 0 && viewMode === 'grid' && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {imageFiles.map((image, index) => (
-              <GridImageItem key={image.path} image={image} index={index} />
+              <GridImageItem
+                key={image.path}
+                image={image}
+                index={index}
+                isTagged={!!imageTags[image.path]}
+                tagKey={imageTags[image.path]?.key?.toUpperCase()}
+                onSelect={(i) => {
+                  setCurrentIndex(i);
+                  setViewMode('single');
+                }}
+              />
             ))}
           </div>
         )}
