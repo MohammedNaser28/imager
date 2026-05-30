@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { readDir, mkdir, copyFile, remove } from '@tauri-apps/plugin-fs';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { FolderOpen, Archive, Zap, Grid3X3, Image } from 'lucide-react';
 import Button from './components/button';
 import SettingsPage from './components/settings';
@@ -9,7 +9,6 @@ import SettingsPage from './components/settings';
 export default function FolderSelector() {
   const [selectedPath, setSelectedPath] = useState('');
   const [imageFiles, setImageFiles] = useState([]);
-  const [imageCache, setImageCache] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState('single');
@@ -159,7 +158,6 @@ export default function FolderSelector() {
         setSelectedPath(selected);
         await loadImageList(selected);
         setCurrentIndex(0);
-        setImageCache({});
         setImageTags({});
       }
     } catch (err) {
@@ -196,37 +194,6 @@ export default function FolderSelector() {
     } catch (err) {
       setError(`Error loading images: ${err?.message || err?.toString()}`);
       console.error('Error loading images:', err);
-    }
-  };
-
-  const loadImageData = async (path) => {
-    if (imageCache[path]) {
-      return imageCache[path];
-    }
-
-    try {
-      const bytes = await invoke('read_image', { path });
-      const base64 = btoa(
-        new Uint8Array(bytes).reduce((data, byte) => data + String.fromCharCode(byte), ''),
-      );
-
-      const ext = path.toLowerCase().split('.').pop();
-      const mimeTypes = {
-        jpg: 'image/jpeg',
-        jpeg: 'image/jpeg',
-        png: 'image/png',
-        gif: 'image/gif',
-        bmp: 'image/bmp',
-        webp: 'image/webp',
-      };
-      const mimeType = mimeTypes[ext] || 'image/jpeg';
-      const url = `data:${mimeType};base64,${base64}`;
-
-      setImageCache((prev) => ({ ...prev, [path]: url }));
-      return url;
-    } catch (err) {
-      console.error('Error loading image:', err);
-      return null;
     }
   };
 
@@ -310,31 +277,23 @@ export default function FolderSelector() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [viewMode, imageFiles.length, currentIndex, shortcuts, currentPage]);
 
+  // Preload adjacent images for instant arrow navigation
   useEffect(() => {
-    if (imageFiles.length > 0 && viewMode === 'single') {
-      loadImageData(imageFiles[currentIndex].path);
-      if (currentIndex + 1 < imageFiles.length) {
-        loadImageData(imageFiles[currentIndex + 1].path);
-      }
-      if (currentIndex > 0) {
-        loadImageData(imageFiles[currentIndex - 1].path);
-      }
-    }
+    if (imageFiles.length === 0 || viewMode !== 'single') return;
+
+    const indices = [currentIndex - 1, currentIndex + 1].filter(
+      (i) => i >= 0 && i < imageFiles.length,
+    );
+
+    indices.forEach((i) => {
+      const img = new Image();
+      img.src = convertFileSrc(imageFiles[i].path);
+    });
   }, [currentIndex, imageFiles, viewMode]);
 
   const SingleImageView = () => {
-    const [imgSrc, setImgSrc] = useState(null);
-    const [imgLoading, setImgLoading] = useState(true);
-
-    useEffect(() => {
-      setImgLoading(true);
-      loadImageData(imageFiles[currentIndex].path).then((url) => {
-        setImgSrc(url);
-        setImgLoading(false);
-      });
-    }, [currentIndex]);
-
     const currentImageTag = imageTags[imageFiles[currentIndex].path];
+    const imgSrc = convertFileSrc(imageFiles[currentIndex].path);
 
     return (
       <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 rounded-2xl shadow-2xl p-6 border border-purple-500/20">
@@ -367,20 +326,11 @@ export default function FolderSelector() {
         )}
 
         <div className="flex flex-col items-center">
-          {imgLoading ? (
-            <div
-              className="max-h-[70vh] w-full flex items-center justify-center bg-slate-800/50 rounded-xl border border-purple-500/20"
-              style={{ minHeight: '400px' }}
-            >
-              <div className="text-purple-300 text-lg">Loading...</div>
-            </div>
-          ) : (
-            <img
-              src={imgSrc}
-              alt={imageFiles[currentIndex].name}
-              className="max-h-[60vh] max-w-full object-contain rounded-xl shadow-2xl border border-purple-500/20"
-            />
-          )}
+          <img
+            src={imgSrc}
+            alt={imageFiles[currentIndex].name}
+            className="max-h-[60vh] max-w-full object-contain rounded-xl shadow-2xl border border-purple-500/20"
+          />
           <p className="mt-4 text-gray-300 font-medium">{imageFiles[currentIndex].name}</p>
         </div>
 
@@ -390,7 +340,6 @@ export default function FolderSelector() {
   };
 
   const GridImageItem = ({ image, index }) => {
-    const [imgSrc, setImgSrc] = useState(null);
     const [isVisible, setIsVisible] = useState(false);
     const [imgRef, setImgRef] = useState(null);
 
@@ -399,9 +348,7 @@ export default function FolderSelector() {
 
       const observer = new IntersectionObserver(
         ([entry]) => {
-          if (entry.isIntersecting) {
-            setIsVisible(true);
-          }
+          if (entry.isIntersecting) setIsVisible(true);
         },
         { rootMargin: '200px' },
       );
@@ -409,12 +356,6 @@ export default function FolderSelector() {
       observer.observe(imgRef);
       return () => observer.disconnect();
     }, [imgRef]);
-
-    useEffect(() => {
-      if (isVisible && !imgSrc) {
-        loadImageData(image.path).then(setImgSrc);
-      }
-    }, [isVisible]);
 
     const isTagged = !!imageTags[image.path];
 
@@ -432,15 +373,15 @@ export default function FolderSelector() {
         }`}
       >
         <div className="aspect-square relative bg-slate-800">
-          {imgSrc ? (
-            <img src={imgSrc} alt={image.name} className="w-full h-full object-cover" />
+          {isVisible ? (
+            <img
+              src={convertFileSrc(image.path)}
+              alt={image.name}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              {isVisible ? (
-                <div className="text-gray-500 text-xs">Loading...</div>
-              ) : (
-                <div className="text-gray-600 text-xs">📷</div>
-              )}
+              <div className="text-gray-600 text-xs">📷</div>
             </div>
           )}
           {isTagged && (
@@ -583,7 +524,7 @@ export default function FolderSelector() {
         {imageFiles.length > 0 && viewMode === 'grid' && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {imageFiles.map((image, index) => (
-              <GridImageItem key={index} image={image} index={index} />
+              <GridImageItem key={image.path} image={image} index={index} />
             ))}
           </div>
         )}
