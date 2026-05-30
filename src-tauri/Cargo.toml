@@ -19,7 +19,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 
-tauri = { version = "2", features = [ "image-ico", "image-png"] }
+tauri = { version = "2", features = [ "image-ico", "image-png", "protocol-asset"] }
 # 2. Add these specific plugins for Tauri v2
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2" # Required to restart the app after update

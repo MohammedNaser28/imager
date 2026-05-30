@@ -83,11 +83,6 @@ fn load_settings(state: State<'_, AppState>) -> Result<Settings, String> {
 }
 
 #[tauri::command]
-fn read_image(path: String) -> Result<Vec<u8>, String> {
-    fs::read(&path).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
 async fn check_for_updates(app: tauri::AppHandle) -> Result<String, String> {
     match app.updater() {
         Ok(updater) => {
@@ -179,7 +174,6 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
-            read_image,
             save_settings,
             load_settings,
             check_for_updates,
