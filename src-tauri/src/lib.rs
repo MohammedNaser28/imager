@@ -1,4 +1,3 @@
-use tauri::Manager;
 use std::fs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
