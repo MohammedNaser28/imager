@@ -148,6 +148,13 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
 
+      - name: Flatten artifacts
+        run: |
+          mkdir -p artifacts
+          for dir in imager-linux imager-windows; do
+            [ -d "$dir" ] && find "$dir" -type f -exec cp {} artifacts/ \;
+          done
+
       - name: Generate latest.json
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -184,8 +191,8 @@ jobs:
         with:
           files: |
             latest.json
-            imager-linux/*.deb
-            imager-linux/*.rpm
-            imager-linux/*.AppImage
-            imager-windows/*.msi
-            imager-windows/*.exe
+            artifacts/*.deb
+            artifacts/*.rpm
+            artifacts/*.AppImage
+            artifacts/*.msi
+            artifacts/*.exe
