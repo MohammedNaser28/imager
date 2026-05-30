@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { open, save } from '@tauri-apps/plugin-dialog';
-import { readDir, mkdir, copyFile, remove } from '@tauri-apps/plugin-fs';
+import { mkdir, copyFile, remove } from '@tauri-apps/plugin-fs';
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { FolderOpen, Archive, Zap, Grid3X3, Image as ImageIcon } from 'lucide-react';
 import Button from './components/button';
@@ -171,28 +171,13 @@ export default function FolderSelector() {
 
   const loadImageList = async (folderPath) => {
     try {
-      const entries = await readDir(folderPath);
-
-      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
-      const images = entries
-        .filter((entry) => {
-          if (!entry.isFile) return false;
-          const name = entry.name.toLowerCase();
-          return imageExtensions.some((ext) => name.endsWith(ext));
-        })
-        .map((file) => ({
-          name: file.name,
-          path: `${folderPath}/${file.name}`,
-        }));
-
-      if (images.length === 0) {
-        setError('No images found in the selected folder');
-        return;
-      }
-
+      const images = await invoke('read_images', { path: folderPath });
       setImageFiles(images);
+      setError('');
     } catch (err) {
-      setError(`Error loading images: ${err?.message || err?.toString()}`);
+      const msg = err?.message || err?.toString() || 'Unknown error';
+      setError(msg);
+      setImageFiles([]);
       console.error('Error loading images:', err);
     }
   };
@@ -222,7 +207,8 @@ export default function FolderSelector() {
 
       for (const [imagePath, shortcut] of Object.entries(imageTags)) {
         const folderPath = `${basePath}/${shortcut.folder}`;
-        const fileName = imagePath.split('/').pop();
+        const image = imageFiles.find((f) => f.path === imagePath);
+        const fileName = image?.name || imagePath.split('/').pop() || imagePath.split('\\').pop();
         const destPath = `${folderPath}/${fileName}`;
 
         try {
