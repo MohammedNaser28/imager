@@ -118,7 +118,7 @@ const handleCreateArchive = async () => {
     setIsArchiving(true);
     try {
         const paths = imageFiles.map(f => f.path);
-        await invoke('create_zip', { files: paths, outZip: savePath });
+        await invoke('archive_images', { files: paths, destZip: savePath });
         alert('Archive created successfully!');
     } catch (err) {
         setError('Archiving failed: ' + err);
